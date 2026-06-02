@@ -78,7 +78,7 @@
   .memo.review{background:var(--review-bg); color:var(--review-text);}
   .stars{color:#f5b301; font-size:14px; letter-spacing:1px;}
   .btns{display:flex; gap:4px;}
-  .btns button{flex:1; padding:6px 3px; font-size:11px; border:1px solid var(--line); border-radius:7px; cursor:pointer; font-weight:600; white-space:nowrap; overflow:hidden; background:transparent; color:var(--sub); transition:background .15s,color .15s,border-color .15s; text-align:center;}
+  .btns button{flex:1; padding:6px 3px; font-size:12px; border:1px solid var(--line); border-radius:7px; cursor:pointer; font-weight:600; white-space:nowrap; overflow:hidden; background:transparent; color:var(--sub); transition:background .15s,color .15s,border-color .15s; text-align:center;}
   .btns button:hover{background:var(--chip); color:var(--text);}
   .btns .btn-danger:hover{background:transparent; color:var(--danger); border-color:var(--danger);}
   .btns .btn-primary{color:var(--accent);}
@@ -619,10 +619,10 @@
     }
     grid.innerHTML = list.map(it=>{
       const thumbContent = it.img
-        ? `<img class="thumb" src="${esc(it.img)}" alt="" onerror="this.outerHTML='<div class=&quot;thumb&quot;>이미지 없음</div>'">`
+        ? `<img class="thumb" src="${esc(it.img)}" alt="${esc(it.name)||'상품 이미지'}" onerror="this.outerHTML='<div class=&quot;thumb&quot;>이미지 없음</div>'">`
         : `<div class="thumb">이미지 없음</div>`;
       const thumb = it.link
-        ? `<a class="thumb-wrap has-link" href="${esc(it.link)}" target="_blank" rel="noopener noreferrer">${thumbContent}<div class="thumb-overlay">↗</div></a>`
+        ? `<a class="thumb-wrap has-link" href="${esc(it.link)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(it.name)||'상품'} 링크 열기">${thumbContent}<div class="thumb-overlay" aria-hidden="true">↗</div></a>`
         : `<div class="thumb-wrap">${thumbContent}</div>`;
       const pri = normalizePriority(it.priority);
       const flag = (pri>0 && currentTab==='wish') ? `<div class="pri-flag">${'🔥'.repeat(pri)}</div>` : '';
