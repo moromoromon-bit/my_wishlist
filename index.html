@@ -84,7 +84,7 @@
     </div>
     <div class="top-actions">
       <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙 다크모드</button>
-      <button class="icon-btn" onclick="openBookmarkletModal()">📌 북마클릿</button>
+      <button class="icon-btn" onclick="openBookmarkletModal()" aria-label="북마클릿 설치 안내 열기">📌 북마클릿</button>
       <button class="icon-btn" onclick="exportData()">📤 백업</button>
       <button class="icon-btn" onclick="document.getElementById('importFile').click()">📥 복원</button>
       <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
@@ -138,11 +138,11 @@
       </div>
       <div class="label">우선순위</div>
       <div class="fire-picker">
-        <button class="fire-dot off" id="fire1" type="button" onmouseenter="previewPriority(1)" onmouseleave="previewPriority(0)" onclick="setPriority(1)">🔥</button>
-        <button class="fire-dot off" id="fire2" type="button" onmouseenter="previewPriority(2)" onmouseleave="previewPriority(0)" onclick="setPriority(2)">🔥</button>
-        <button class="fire-dot off" id="fire3" type="button" onmouseenter="previewPriority(3)" onmouseleave="previewPriority(0)" onclick="setPriority(3)">🔥</button>
+        <button class="fire-dot off" id="fire1" type="button" aria-label="우선순위 1단계" onmouseenter="previewPriority(1)" onmouseleave="previewPriority(0)" onclick="setPriority(1)">🔥</button>
+        <button class="fire-dot off" id="fire2" type="button" aria-label="우선순위 2단계" onmouseenter="previewPriority(2)" onmouseleave="previewPriority(0)" onclick="setPriority(2)">🔥</button>
+        <button class="fire-dot off" id="fire3" type="button" aria-label="우선순위 3단계" onmouseenter="previewPriority(3)" onmouseleave="previewPriority(0)" onclick="setPriority(3)">🔥</button>
         <button class="act ghost" type="button" style="flex:0 0 auto;padding:6px 10px;" onclick="setPriority(0)">없음</button>
-        <span class="picker-text" id="priorityText">우선순위 없음</span>
+        <span class="picker-text" id="priorityText" aria-live="polite">우선순위 없음</span>
       </div>
       <input id="inPriority" type="hidden" value="0">
       <div class="label">왜 사고 싶은지 메모 (선택)</div>
@@ -180,13 +180,13 @@
       </div>
       <div class="label">별점</div>
       <div class="star-picker">
-        <button class="star-dot off" id="star1" type="button" onmouseenter="previewReviewRating(1)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(1)">★</button>
-        <button class="star-dot off" id="star2" type="button" onmouseenter="previewReviewRating(2)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(2)">★</button>
-        <button class="star-dot off" id="star3" type="button" onmouseenter="previewReviewRating(3)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(3)">★</button>
-        <button class="star-dot off" id="star4" type="button" onmouseenter="previewReviewRating(4)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(4)">★</button>
-        <button class="star-dot off" id="star5" type="button" onmouseenter="previewReviewRating(5)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(5)">★</button>
+        <button class="star-dot off" id="star1" type="button" aria-label="별점 1점" onmouseenter="previewReviewRating(1)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(1)">★</button>
+        <button class="star-dot off" id="star2" type="button" aria-label="별점 2점" onmouseenter="previewReviewRating(2)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(2)">★</button>
+        <button class="star-dot off" id="star3" type="button" aria-label="별점 3점" onmouseenter="previewReviewRating(3)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(3)">★</button>
+        <button class="star-dot off" id="star4" type="button" aria-label="별점 4점" onmouseenter="previewReviewRating(4)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(4)">★</button>
+        <button class="star-dot off" id="star5" type="button" aria-label="별점 5점" onmouseenter="previewReviewRating(5)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(5)">★</button>
         <button class="act ghost" type="button" style="flex:0 0 auto;padding:6px 10px;" onclick="setReviewRating(0)">없음</button>
-        <span class="picker-text" id="reviewRatingText">별점 없음</span>
+        <span class="picker-text" id="reviewRatingText" aria-live="polite">별점 없음</span>
       </div>
       <div class="label">후기</div>
       <textarea id="reviewText" placeholder="사용해 본 느낌을 적어보세요."></textarea>
@@ -227,15 +227,15 @@
   function esc(s){ return (s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
   function normalizePriority(v){
     const n = Number(v);
-    if(!Number.isFinite(n) || n <= 0) return 0;
-    return Math.max(0, Math.min(3, Math.floor(n)));
+    if(!Number.isFinite(n) || n < 0) return 0;
+    return Math.min(3, Math.floor(n));
   }
   function legacyPriorityToFire(v){
     const n = Number(v);
     if(n === 1) return 3;
     if(n === 2) return 2;
     if(n === 3 || n === 4) return 1;
-    return normalizePriority(n);
+    return 0;
   }
   function migratePriorityIfNeeded(){
     if(localStorage.getItem(PRIORITY_MIGRATION_KEY) === '1') return;
@@ -244,10 +244,11 @@
     localStorage.setItem(PRIORITY_MIGRATION_KEY, '1');
   }
   function normalizeImportedItems(list){
-    const hasLegacyPriority = list.some(it => Number(it && it.priority) === 4);
+    const hasLegacyPriority = list.some(it => it && Number(it.priority) > 3);
     return list.map(raw => {
       const item = makeItem(raw || {});
-      item.priority = hasLegacyPriority ? legacyPriorityToFire(raw && raw.priority) : normalizePriority(raw && raw.priority);
+      const rawPriority = raw ? raw.priority : undefined;
+      item.priority = hasLegacyPriority ? legacyPriorityToFire(rawPriority) : normalizePriority(rawPriority);
       return item;
     });
   }
@@ -377,7 +378,10 @@
   function openModal(id){ document.getElementById(id).classList.add('open'); }
   function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
-  function priorityLabel(level){ return level>0 ? `${'🔥'.repeat(level)} ${PRI[level]}` : '우선순위 없음'; }
+  function priorityLabel(level){
+    const safe = normalizePriority(level);
+    return safe>0 ? `${'🔥'.repeat(safe)} ${PRI[safe]}` : '우선순위 없음';
+  }
   function renderPriorityPicker(){
     const val = normalizePriority(document.getElementById('inPriority').value);
     const show = priorityHover || val;
