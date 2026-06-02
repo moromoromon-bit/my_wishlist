@@ -24,7 +24,8 @@
   h1{margin:0 0 4px; font-size:24px;}
   .desc{color:var(--sub); font-size:13px; margin-bottom:16px;}
   .top-actions{display:flex; gap:8px; flex-wrap:wrap;}
-  .icon-btn{padding:8px 12px; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:9px; cursor:pointer; font-size:13px; font-weight:600;}
+  .icon-btn{padding:8px 12px; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:9px; cursor:pointer; font-size:13px; font-weight:600; transition:background .15s,border-color .15s;}
+  .icon-btn:hover{background:var(--chip);}
   .tabs-row{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
   .tabs{display:flex; gap:8px; flex-wrap:wrap;}
   .tab{padding:10px 18px; border:none; border-radius:10px; cursor:pointer; background:var(--chip); font-size:15px; font-weight:600; color:var(--sub);}
@@ -58,21 +59,30 @@
   .toolbar input, .toolbar select{padding:9px 12px; border:1px solid var(--line); border-radius:9px; font-size:13px; background:var(--card); color:var(--text);}
   .toolbar input{flex:1; min-width:160px;}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px;}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; position:relative;}
-  .pri-flag{position:absolute; top:8px; left:8px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; padding:3px 8px; border-radius:20px;}
-  .thumb{width:100%; aspect-ratio:1/1; object-fit:cover; background:var(--chip); display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:13px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 1px 4px rgba(0,0,0,.06); transition:transform .18s,box-shadow .18s;}
+  .card:hover{transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,.1);}
+  .pri-flag{position:absolute; top:8px; left:8px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; padding:3px 8px; border-radius:20px; z-index:1;}
+  .thumb-wrap{position:relative; display:block; text-decoration:none; color:inherit;}
+  .thumb-wrap.has-link{cursor:pointer;}
+  .thumb-wrap.has-link:hover .thumb{filter:brightness(.88);}
+  .thumb-overlay{position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:13px; opacity:0; transition:opacity .18s; pointer-events:none;}
+  .thumb-wrap.has-link:hover .thumb-overlay{opacity:1;}
+  .thumb{width:100%; aspect-ratio:1/1; object-fit:cover; background:var(--chip); display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:13px; transition:filter .18s;}
   .card-body{padding:12px; display:flex; flex-direction:column; gap:8px;}
   .card-title{font-size:15px; font-weight:700; line-height:1.3; word-break:break-all;}
   .price{font-size:15px; font-weight:800; color:var(--accent);}
   .tags{display:flex; gap:5px; flex-wrap:wrap;}
   .tag{font-size:11px; background:var(--chip); color:var(--sub); padding:2px 8px; border-radius:20px;}
-  .card-link{font-size:12px; color:var(--accent); text-decoration:none; word-break:break-all;}
   .dates{font-size:11px; color:var(--sub);}
   .memo{font-size:13px; color:var(--sub); background:var(--memo-bg); padding:8px; border-radius:8px; white-space:pre-wrap; word-break:break-all;}
   .memo.review{background:var(--review-bg); color:var(--review-text);}
   .stars{color:#f5b301; font-size:14px; letter-spacing:1px;}
-  .btns{display:flex; gap:6px; flex-wrap:wrap;}
-  .btns button{flex:1; padding:8px; font-size:13px; border:none; border-radius:7px; cursor:pointer; font-weight:600;}
+  .btns{display:flex; gap:4px;}
+  .btns button{flex:1; padding:6px 3px; font-size:12px; border:1px solid var(--line); border-radius:7px; cursor:pointer; font-weight:600; white-space:nowrap; overflow:hidden; background:transparent; color:var(--sub); transition:background .15s,color .15s,border-color .15s; text-align:center;}
+  .btns button:hover{background:var(--chip); color:var(--text);}
+  .btns .btn-danger:hover{background:transparent; color:var(--danger); border-color:var(--danger);}
+  .btns .btn-primary{color:var(--accent);}
+  .btns .btn-primary:hover{background:transparent; color:var(--accent); border-color:var(--accent);}
   .empty{color:var(--sub); text-align:center; padding:40px; font-size:15px; grid-column:1/-1;}
 </style>
 </head>
@@ -608,23 +618,25 @@
       return;
     }
     grid.innerHTML = list.map(it=>{
-      const thumb = it.img
-        ? `<img class="thumb" src="${esc(it.img)}" onerror="this.outerHTML='<div class=&quot;thumb&quot;>이미지 없음</div>'">`
+      const thumbContent = it.img
+        ? `<img class="thumb" src="${esc(it.img)}" alt="${esc(it.name)||'상품 이미지'}" onerror="this.outerHTML='<div class=&quot;thumb&quot;>이미지 없음</div>'">`
         : `<div class="thumb">이미지 없음</div>`;
+      const thumb = it.link
+        ? `<a class="thumb-wrap has-link" href="${esc(it.link)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(it.name)||'상품'} 링크 열기">${thumbContent}<div class="thumb-overlay" aria-hidden="true">↗</div></a>`
+        : `<div class="thumb-wrap">${thumbContent}</div>`;
       const pri = normalizePriority(it.priority);
       const flag = (pri>0 && currentTab==='wish') ? `<div class="pri-flag">${'🔥'.repeat(pri)}</div>` : '';
       const price = it.price ? `<div class="price">${fmt(it.price)}</div>` : '';
       const tags = (it.tags&&it.tags.length) ? `<div class="tags">${it.tags.map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div>` : '';
-      const linkLine = it.link ? `<a class="card-link" href="${esc(it.link)}" target="_blank">🔗 링크 열기</a>` : '';
       const memo = it.memo ? `<div class="memo">📝 ${esc(it.memo)}</div>` : '';
       let actions, extra='';
       if(currentTab==='wish'){
         const d = it.addedDate ? `<div class="dates">📅 추가: ${it.addedDate}</div>` : '';
         extra = memo + d;
         actions = `<div class="btns">
-            <button style="background:var(--chip);color:var(--text)" onclick="editItem(${it.id})">✏️ 수정</button>
-            <button style="background:var(--accent-2);color:#fff" onclick="markBought(${it.id})">🛒 구매</button>
-            <button style="background:var(--danger);color:#fff" onclick="delItem(${it.id})">🗑️ 삭제</button>
+            <button onclick="editItem(${it.id})">수정</button>
+            <button class="btn-primary" onclick="markBought(${it.id})">구매</button>
+            <button class="btn-danger" onclick="delItem(${it.id})">삭제</button>
           </div>`;
       } else {
         const ratingLine = it.rating ? `<div class="stars">${stars(it.rating)}</div>` : '';
@@ -632,14 +644,14 @@
         const d = it.boughtDate ? `<div class="dates">🛍️ 구매: ${it.boughtDate}</div>` : '';
         extra = ratingLine + review + d;
         actions = `<div class="btns">
-            <button style="background:var(--chip);color:var(--text)" onclick="editReview(${it.id})">⭐ 후기</button>
-            <button style="background:var(--chip);color:var(--text)" onclick="moveBack(${it.id})">↩️ 되돌리기</button>
-            <button style="background:var(--danger);color:#fff" onclick="delItem(${it.id})">🗑️ 삭제</button>
+            <button onclick="editReview(${it.id})">후기</button>
+            <button onclick="moveBack(${it.id})">되돌리기</button>
+            <button class="btn-danger" onclick="delItem(${it.id})">삭제</button>
           </div>`;
       }
       return `<div class="card">${flag}${thumb}<div class="card-body">
         <div class="card-title">${esc(it.name)||'(이름 없음)'}</div>
-        ${price}${tags}${linkLine}${extra}${actions}
+        ${price}${tags}${extra}${actions}
       </div></div>`;
     }).join('');
   }
