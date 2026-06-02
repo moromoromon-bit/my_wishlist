@@ -25,14 +25,21 @@
   .desc{color:var(--sub); font-size:13px; margin-bottom:16px;}
   .top-actions{display:flex; gap:8px; flex-wrap:wrap;}
   .icon-btn{padding:8px 12px; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:9px; cursor:pointer; font-size:13px; font-weight:600;}
-  .tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .tabs-row{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
+  .tabs{display:flex; gap:8px; flex-wrap:wrap;}
   .tab{padding:10px 18px; border:none; border-radius:10px; cursor:pointer; background:var(--chip); font-size:15px; font-weight:600; color:var(--sub);}
   .tab.active{background:var(--accent); color:#fff;}
+  .add-open-btn{padding:10px 16px; border:none; border-radius:10px; cursor:pointer; font-size:14px; font-weight:700; color:#fff; background:var(--accent);}
   .summary{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;}
   .stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 16px; font-size:13px; color:var(--sub);}
   .stat b{display:block; font-size:18px; color:var(--text); margin-top:2px;}
-  .add-box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:20px; display:flex; flex-direction:column; gap:10px;}
-  .add-box input, .add-box textarea, .add-box select{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit; background:var(--bg); color:var(--text);}
+  .modal{position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(10,15,25,.52);}
+  .modal.open{display:flex;}
+  .modal-card{width:min(720px,100%); max-height:calc(100vh - 40px); overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px;}
+  .modal-title{margin:0; font-size:18px;}
+  .modal-head{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .modal-close{padding:8px 12px; border:1px solid var(--line); background:var(--chip); color:var(--text); border-radius:9px; cursor:pointer; font-size:13px; font-weight:700;}
+  .form-box input, .form-box textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit; background:var(--bg); color:var(--text);}
   textarea{resize:vertical; min-height:48px;}
   .row{display:flex; gap:8px; flex-wrap:wrap;}
   .row>*{flex:1; min-width:140px;}
@@ -40,10 +47,13 @@
   button.ghost{background:var(--chip); color:var(--text);}
   .hint{font-size:12px; color:var(--sub);}
   .label{font-size:12px; font-weight:700; color:var(--sub); margin-top:4px;}
-  .helper-box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:-6px 0 16px;}
-  .helper-box summary{cursor:pointer; font-weight:700; color:var(--text);}
-  .helper-body{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
-  .helper-body textarea{min-height:72px; font-size:12px;}
+  .bookmarklet-link{display:block; font-size:20px; text-align:center; text-decoration:none; font-weight:700; border:1px dashed var(--line); border-radius:12px; padding:14px; color:var(--accent);}
+  .bookmarklet-link:hover{background:var(--memo-bg);}
+  .copy-box textarea{min-height:90px; font-size:12px;}
+  .fire-picker,.star-picker{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .fire-dot,.star-dot{border:none; background:transparent; font-size:24px; cursor:pointer; line-height:1; padding:3px;}
+  .fire-dot.off,.star-dot.off{filter:grayscale(1); opacity:.45;}
+  .picker-text{font-size:12px; color:var(--sub);}
   .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
   .toolbar input, .toolbar select{padding:9px 12px; border:1px solid var(--line); border-radius:9px; font-size:13px; background:var(--card); color:var(--text);}
   .toolbar input{flex:1; min-width:160px;}
@@ -74,59 +84,22 @@
     </div>
     <div class="top-actions">
       <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙 다크모드</button>
+      <button class="icon-btn" onclick="openBookmarkletModal()">📌 북마클릿</button>
       <button class="icon-btn" onclick="exportData()">📤 백업</button>
       <button class="icon-btn" onclick="document.getElementById('importFile').click()">📥 복원</button>
       <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" id="tab-wish" onclick="switchTab('wish')">위시리스트</button>
-    <button class="tab" id="tab-bought" onclick="switchTab('bought')">구매함</button>
+  <div class="tabs-row">
+    <div class="tabs">
+      <button class="tab active" id="tab-wish" onclick="switchTab('wish')">위시리스트</button>
+      <button class="tab" id="tab-bought" onclick="switchTab('bought')">구매함</button>
+    </div>
+    <button class="add-open-btn" onclick="openItemModal()">＋ 추가하기</button>
   </div>
 
   <div class="summary" id="summary"></div>
-
-  <div class="add-box" id="addBox">
-    <div class="label">상품 링크</div>
-    <div class="row">
-      <input id="inLink" placeholder="링크 붙여넣기 (예: https://...)">
-      <button class="act ghost" onclick="autoFetch()" id="fetchBtn" style="flex:0 0 auto">🔍 자동 불러오기</button>
-    </div>
-    <div class="hint">자동이 안 되면 아래 북마클릿을 쓰거나 직접 입력하세요. (이미지 우클릭 → "이미지 주소 복사")</div>
-    <div class="row">
-      <input id="inName" placeholder="상품 이름">
-      <input id="inImg" placeholder="이미지 주소 (선택)">
-    </div>
-    <div class="row">
-      <input id="inPrice" type="number" placeholder="가격 (숫자만)">
-      <input id="inTags" placeholder="카테고리/태그 (쉼표로 구분: 옷, 전자기기)">
-      <select id="inPriority">
-        <option value="3">우선순위: 보통</option>
-        <option value="1">🔥 꼭 사고싶음</option>
-        <option value="2">⬆️ 높음</option>
-        <option value="4">⬇️ 낮음</option>
-      </select>
-    </div>
-    <div class="label">왜 사고 싶은지 메모 (선택)</div>
-    <textarea id="inMemo" placeholder="예) 겨울에 따뜻할 것 같아서, 세일 중이라..."></textarea>
-    <div class="row">
-      <button class="act" onclick="addItem()" id="submitBtn">＋ 위시리스트에 추가</button>
-      <button class="act ghost" onclick="clearForm()" style="flex:0 0 auto">입력 초기화</button>
-    </div>
-  </div>
-
-  <details class="helper-box">
-    <summary>📌 북마클릿 설치/사용법</summary>
-    <div class="helper-body">
-      <div class="hint">아래 코드를 복사해 브라우저 즐겨찾기에 URL로 저장한 뒤, 상품 페이지에서 클릭하면 바로 위시리스트에 담깁니다.</div>
-      <textarea id="bookmarkletCode" readonly></textarea>
-      <div class="row">
-        <button class="act ghost" onclick="copyBookmarklet()" style="flex:0 0 auto">📋 북마클릿 코드 복사</button>
-      </div>
-      <div class="hint">네이버/쿠팡처럼 자동 불러오기가 막히는 사이트에서 특히 유용합니다.</div>
-    </div>
-  </details>
 
   <div class="toolbar">
     <input id="searchBox" placeholder="🔍 이름·메모·태그 검색" oninput="render()">
@@ -143,11 +116,97 @@
 
   <div class="grid" id="grid"></div>
 
+  <div class="modal" id="itemModal" onclick="onOverlayClick(event, 'itemModal')">
+    <div class="modal-card form-box">
+      <div class="modal-head">
+        <h2 class="modal-title" id="itemModalTitle">위시리스트에 추가</h2>
+        <button class="modal-close" onclick="closeItemModal()">닫기</button>
+      </div>
+      <div class="label">상품 링크</div>
+      <div class="row">
+        <input id="inLink" placeholder="링크 붙여넣기 (예: https://...)">
+        <button class="act ghost" onclick="autoFetch()" id="fetchBtn" style="flex:0 0 auto">🔍 자동 불러오기</button>
+      </div>
+      <div class="hint">자동이 안 되면 북마클릿 버튼을 쓰거나 직접 입력하세요. (이미지 우클릭 → 이미지 주소 복사)</div>
+      <div class="row">
+        <input id="inName" placeholder="상품 이름">
+        <input id="inImg" placeholder="이미지 주소 (선택)">
+      </div>
+      <div class="row">
+        <input id="inPrice" type="number" placeholder="가격 (숫자만)">
+        <input id="inTags" placeholder="카테고리/태그 (쉼표로 구분: 옷, 전자기기)">
+      </div>
+      <div class="label">우선순위</div>
+      <div class="fire-picker">
+        <button class="fire-dot off" id="fire1" type="button" onmouseenter="previewPriority(1)" onmouseleave="previewPriority(0)" onclick="setPriority(1)">🔥</button>
+        <button class="fire-dot off" id="fire2" type="button" onmouseenter="previewPriority(2)" onmouseleave="previewPriority(0)" onclick="setPriority(2)">🔥</button>
+        <button class="fire-dot off" id="fire3" type="button" onmouseenter="previewPriority(3)" onmouseleave="previewPriority(0)" onclick="setPriority(3)">🔥</button>
+        <button class="act ghost" type="button" style="flex:0 0 auto;padding:6px 10px;" onclick="setPriority(0)">없음</button>
+        <span class="picker-text" id="priorityText">우선순위 없음</span>
+      </div>
+      <input id="inPriority" type="hidden" value="0">
+      <div class="label">왜 사고 싶은지 메모 (선택)</div>
+      <textarea id="inMemo" placeholder="예) 겨울에 따뜻할 것 같아서, 세일 중이라..."></textarea>
+      <div class="row">
+        <button class="act" onclick="addItem()" id="submitBtn">저장</button>
+        <button class="act ghost" onclick="closeItemModal()" style="flex:0 0 auto">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="bookmarkletModal" onclick="onOverlayClick(event, 'bookmarkletModal')">
+    <div class="modal-card copy-box">
+      <div class="modal-head">
+        <h2 class="modal-title">📌 북마클릿 안내</h2>
+        <button class="modal-close" onclick="closeBookmarkletModal()">닫기</button>
+      </div>
+      <div class="hint">이 버튼을 즐겨찾기 바로 끌어다 놓으면 등록돼요. 네이버·쿠팡처럼 자동 불러오기가 막히는 사이트에서 상품 페이지를 보다가 클릭하면 바로 담깁니다.</div>
+      <a class="bookmarklet-link" id="bookmarkletLink" href="#">📌 위시리스트에 담기</a>
+      <div class="hint">브라우저 보안상 코드로 즐겨찾기를 자동 생성할 수는 없어서, 링크를 직접 드래그해 등록해야 해요.</div>
+      <div class="label">수동 등록용 코드</div>
+      <textarea id="bookmarkletCode" readonly></textarea>
+      <div class="row">
+        <button class="act ghost" onclick="copyBookmarklet()" style="flex:0 0 auto">📋 코드 복사</button>
+        <button class="act ghost" onclick="closeBookmarkletModal()" style="flex:0 0 auto">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="reviewModal" onclick="onOverlayClick(event, 'reviewModal')">
+    <div class="modal-card form-box">
+      <div class="modal-head">
+        <h2 class="modal-title">⭐ 후기 작성</h2>
+        <button class="modal-close" onclick="closeReviewModal()">닫기</button>
+      </div>
+      <div class="label">별점</div>
+      <div class="star-picker">
+        <button class="star-dot off" id="star1" type="button" onmouseenter="previewReviewRating(1)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(1)">★</button>
+        <button class="star-dot off" id="star2" type="button" onmouseenter="previewReviewRating(2)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(2)">★</button>
+        <button class="star-dot off" id="star3" type="button" onmouseenter="previewReviewRating(3)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(3)">★</button>
+        <button class="star-dot off" id="star4" type="button" onmouseenter="previewReviewRating(4)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(4)">★</button>
+        <button class="star-dot off" id="star5" type="button" onmouseenter="previewReviewRating(5)" onmouseleave="previewReviewRating(0)" onclick="setReviewRating(5)">★</button>
+        <button class="act ghost" type="button" style="flex:0 0 auto;padding:6px 10px;" onclick="setReviewRating(0)">없음</button>
+        <span class="picker-text" id="reviewRatingText">별점 없음</span>
+      </div>
+      <div class="label">후기</div>
+      <textarea id="reviewText" placeholder="사용해 본 느낌을 적어보세요."></textarea>
+      <div class="row">
+        <button class="act" onclick="saveReviewModal()">저장</button>
+        <button class="act ghost" onclick="closeReviewModal()" style="flex:0 0 auto">취소</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   let items = JSON.parse(localStorage.getItem('wishlist_items') || '[]');
   let currentTab = 'wish';
   let editingId = null;
-  const PRI = {1:'🔥 꼭 사고싶음',2:'⬆️ 높음',3:'보통',4:'⬇️ 낮음'};
+  let priorityHover = 0;
+  let reviewEditingId = null;
+  let reviewRating = 0;
+  let reviewRatingHover = 0;
+  const PRI = {3:'꼭 사고싶음',2:'사고 싶음',1:'끌림',0:'없음'};
+  const PRIORITY_MIGRATION_KEY = 'wishlist_priority_v2';
 
   // 테마
   if(localStorage.getItem('wishlist_theme')==='dark'){ document.documentElement.setAttribute('data-theme','dark'); }
@@ -166,6 +225,32 @@
   function fmt(n){ return n ? Number(n).toLocaleString('ko-KR')+'원' : ''; }
   function today(){ return new Date().toISOString().slice(0,10); }
   function esc(s){ return (s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
+  function normalizePriority(v){
+    const n = Number(v);
+    if(!Number.isFinite(n) || n <= 0) return 0;
+    return Math.max(0, Math.min(3, Math.floor(n)));
+  }
+  function legacyPriorityToFire(v){
+    const n = Number(v);
+    if(n === 1) return 3;
+    if(n === 2) return 2;
+    if(n === 3 || n === 4) return 1;
+    return normalizePriority(n);
+  }
+  function migratePriorityIfNeeded(){
+    if(localStorage.getItem(PRIORITY_MIGRATION_KEY) === '1') return;
+    items = items.map(it => ({...it, priority: legacyPriorityToFire(it.priority)}));
+    save();
+    localStorage.setItem(PRIORITY_MIGRATION_KEY, '1');
+  }
+  function normalizeImportedItems(list){
+    const hasLegacyPriority = list.some(it => Number(it && it.priority) === 4);
+    return list.map(raw => {
+      const item = makeItem(raw || {});
+      item.priority = hasLegacyPriority ? legacyPriorityToFire(raw && raw.priority) : normalizePriority(raw && raw.priority);
+      return item;
+    });
+  }
   function decodeHtmlEntities(s){
     if(!s) return '';
     const t = document.createElement('textarea');
@@ -181,7 +266,7 @@
       memo: data.memo || '',
       price: data.price || '',
       tags: Array.isArray(data.tags) ? data.tags : [],
-      priority: Number(data.priority) || 3,
+      priority: normalizePriority(data.priority),
       bought: !!data.bought,
       review: data.review || '',
       rating: Number(data.rating) || 0,
@@ -239,8 +324,10 @@
     return `javascript:(function(){var base=${JSON.stringify(baseUrl)};var q=function(s){var e=document.querySelector(s);return e?e.getAttribute('content')||'':'';};var decode=function(t){var a=document.createElement('textarea');a.innerHTML=t||'';return a.value||'';};var rawName=q('meta[property="og:title"]')||q('meta[name="og:title"]')||document.title||'';var name=decode(rawName);var img=q('meta[property="og:image"]')||q('meta[name="og:image"]')||q('meta[property="twitter:image"]')||q('meta[name="twitter:image"]')||'';if(!img){var arr=Array.prototype.slice.call(document.images||[]).filter(function(i){return i&&i.src&&i.naturalWidth>=200&&i.naturalHeight>=200;}).sort(function(a,b){return b.naturalWidth*b.naturalHeight-a.naturalWidth*a.naturalHeight;});if(arr[0]) img=arr[0].src;}var target=base+'?add=1&name='+encodeURIComponent(name)+'&img='+encodeURIComponent(img)+'&link='+encodeURIComponent(location.href);window.open(target,'_blank');})();`;
   }
   function updateBookmarkletCode(){
+    const code = bookmarkletSource(location.origin + location.pathname);
     const box = document.getElementById('bookmarkletCode');
-    box.value = bookmarkletSource(location.origin + location.pathname);
+    box.value = code;
+    document.getElementById('bookmarkletLink').href = code;
   }
   function fallbackCopyBookmarklet(box){
     box.focus();
@@ -257,6 +344,8 @@
     }
     fallbackCopyBookmarklet(box);
   }
+  function openBookmarkletModal(){ updateBookmarkletCode(); openModal('bookmarkletModal'); }
+  function closeBookmarkletModal(){ closeModal('bookmarkletModal'); }
   function handleBookmarkletParams(){
     const params = new URLSearchParams(location.search);
     if(params.get('add') !== '1') return;
@@ -275,16 +364,61 @@
     currentTab = tab;
     document.getElementById('tab-wish').classList.toggle('active', tab==='wish');
     document.getElementById('tab-bought').classList.toggle('active', tab==='bought');
-    document.getElementById('addBox').style.display = (tab==='wish') ? 'flex' : 'none';
     render();
+  }
+
+  function onOverlayClick(e, modalId){
+    if(e.target.id === modalId){
+      if(modalId==='itemModal') closeItemModal();
+      if(modalId==='bookmarkletModal') closeBookmarkletModal();
+      if(modalId==='reviewModal') closeReviewModal();
+    }
+  }
+  function openModal(id){ document.getElementById(id).classList.add('open'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+  function priorityLabel(level){ return level>0 ? `${'🔥'.repeat(level)} ${PRI[level]}` : '우선순위 없음'; }
+  function renderPriorityPicker(){
+    const val = normalizePriority(document.getElementById('inPriority').value);
+    const show = priorityHover || val;
+    for(let i=1;i<=3;i++){
+      const el = document.getElementById('fire'+i);
+      el.classList.toggle('off', i>show);
+    }
+    document.getElementById('priorityText').textContent = priorityLabel(val);
+  }
+  function previewPriority(level){ priorityHover = level; renderPriorityPicker(); }
+  function setPriority(level){
+    document.getElementById('inPriority').value = normalizePriority(level);
+    priorityHover = 0;
+    renderPriorityPicker();
   }
 
   function clearForm(){
     editingId = null;
     inLink.value=''; inName.value=''; inImg.value=''; inMemo.value='';
-    inPrice.value=''; inTags.value=''; inPriority.value='3';
-    document.getElementById('submitBtn').textContent = '＋ 위시리스트에 추가';
+    inPrice.value=''; inTags.value=''; inPriority.value='0';
+    priorityHover = 0;
+    renderPriorityPicker();
+    document.getElementById('submitBtn').textContent = '저장';
+    document.getElementById('itemModalTitle').textContent = '위시리스트에 추가';
   }
+  function openItemModal(id){
+    clearForm();
+    if(id){
+      const it = items.find(i=>i.id===id);
+      if(!it) return;
+      editingId=id;
+      inName.value=it.name; inLink.value=it.link; inImg.value=it.img||''; inMemo.value=it.memo||'';
+      inPrice.value=it.price||''; inTags.value=(it.tags||[]).join(', ');
+      setPriority(normalizePriority(it.priority));
+      document.getElementById('submitBtn').textContent = '저장';
+      document.getElementById('itemModalTitle').textContent = '상품 수정';
+    }
+    openModal('itemModal');
+    inLink.focus();
+  }
+  function closeItemModal(){ closeModal('itemModal'); clearForm(); }
 
   function parseTags(s){ return (s||'').split(',').map(t=>t.trim()).filter(Boolean); }
 
@@ -295,47 +429,69 @@
     if(editingId){
       const it = items.find(i=>i.id===editingId);
       it.name=name; it.link=link; it.img=inImg.value.trim(); it.memo=inMemo.value.trim();
-      it.price=inPrice.value; it.tags=parseTags(inTags.value); it.priority=Number(inPriority.value);
+      it.price=inPrice.value; it.tags=parseTags(inTags.value); it.priority=normalizePriority(inPriority.value);
       editingId=null;
     } else {
       items.unshift(makeItem({
         name, link, img: inImg.value.trim(), memo: inMemo.value.trim(),
-        price: inPrice.value, tags: parseTags(inTags.value), priority: Number(inPriority.value)
+        price: inPrice.value, tags: parseTags(inTags.value), priority: normalizePriority(inPriority.value)
       }));
     }
-    save(); clearForm(); refreshTagFilter(); render();
+    save(); closeItemModal(); refreshTagFilter(); render();
   }
 
-  function editItem(id){
+  function editItem(id){ switchTab('wish'); openItemModal(id); }
+
+  function renderReviewStars(){
+    const show = reviewRatingHover || reviewRating;
+    for(let i=1;i<=5;i++){
+      const el = document.getElementById('star'+i);
+      el.classList.toggle('off', i>show);
+    }
+    document.getElementById('reviewRatingText').textContent = reviewRating ? `${reviewRating}점` : '별점 없음';
+  }
+  function previewReviewRating(n){ reviewRatingHover = n; renderReviewStars(); }
+  function setReviewRating(n){ reviewRating = Math.max(0, Math.min(5, Number(n)||0)); reviewRatingHover = 0; renderReviewStars(); }
+  function openReviewModal(id){
     const it = items.find(i=>i.id===id);
-    editingId=id; switchTab('wish');
-    inName.value=it.name; inLink.value=it.link; inImg.value=it.img||''; inMemo.value=it.memo||'';
-    inPrice.value=it.price||''; inTags.value=(it.tags||[]).join(', '); inPriority.value=it.priority||3;
-    document.getElementById('submitBtn').textContent = '✓ 수정 완료';
-    window.scrollTo({top:0, behavior:'smooth'});
+    if(!it) return;
+    reviewEditingId = id;
+    reviewRating = Math.max(0, Math.min(5, Number(it.rating)||0));
+    reviewRatingHover = 0;
+    document.getElementById('reviewText').value = it.review || '';
+    renderReviewStars();
+    openModal('reviewModal');
   }
-
+  function closeReviewModal(){
+    closeModal('reviewModal');
+    reviewEditingId = null;
+    reviewRating = 0;
+    reviewRatingHover = 0;
+    document.getElementById('reviewText').value = '';
+    renderReviewStars();
+  }
+  function saveReviewModal(){
+    if(!reviewEditingId){ closeReviewModal(); return; }
+    const it = items.find(i=>i.id===reviewEditingId);
+    if(it){
+      it.review = document.getElementById('reviewText').value.trim();
+      it.rating = reviewRating;
+      save();
+      render();
+    }
+    closeReviewModal();
+  }
   function markBought(id){
     const it = items.find(i=>i.id===id);
+    if(!it) return;
     it.bought=true; it.boughtDate=today();
-    const r = prompt('축하해요! 간단한 후기를 남겨볼까요? (나중에 수정 가능)','');
-    if(r!==null) it.review=r;
-    const s = prompt('별점은 몇 점인가요? (1~5, 건너뛰려면 비워두세요)','');
-    if(s){ const n=Math.max(1,Math.min(5,parseInt(s)||0)); it.rating=n; }
     save(); render();
+    openReviewModal(id);
   }
 
   function moveBack(id){ const it=items.find(i=>i.id===id); it.bought=false; it.boughtDate=''; save(); render(); }
 
-  function editReview(id){
-    const it = items.find(i=>i.id===id);
-    const r = prompt('후기 수정', it.review||'');
-    if(r!==null){ it.review=r;
-      const s = prompt('별점 (1~5)', it.rating||'');
-      if(s!==null && s!==''){ it.rating=Math.max(1,Math.min(5,parseInt(s)||0)); }
-      save(); render();
-    }
-  }
+  function editReview(id){ openReviewModal(id); }
 
   function delItem(id){ if(confirm('정말 삭제할까요?')){ items=items.filter(i=>i.id!==id); save(); refreshTagFilter(); render(); } }
 
@@ -355,8 +511,9 @@
       try{
         const data = JSON.parse(reader.result);
         if(!Array.isArray(data)) throw new Error();
-        if(confirm('현재 데이터를 덮어쓸까요? (취소하면 기존 목록에 합칩니다)')){ items = data; }
-        else { const ids=new Set(items.map(i=>i.id)); items=items.concat(data.filter(d=>!ids.has(d.id))); }
+        const normalized = normalizeImportedItems(data);
+        if(confirm('현재 데이터를 덮어쓸까요? (취소하면 기존 목록에 합칩니다)')){ items = normalized; }
+        else { const ids=new Set(items.map(i=>i.id)); items=items.concat(normalized.filter(d=>!ids.has(d.id))); }
         save(); refreshTagFilter(); render();
         alert('복원 완료!');
       }catch(err){ alert('올바른 백업 파일이 아니에요.'); }
@@ -370,7 +527,7 @@
     if(!url){ alert('먼저 링크를 붙여넣어 주세요.'); return; }
     const btn = document.getElementById('fetchBtn');
     btn.textContent='불러오는 중...'; btn.disabled=true;
-    const failGuide = '이 사이트(예: 네이버)는 자동 불러오기를 차단할 수 있어요. 아래 북마클릿을 쓰거나 직접 입력하세요.';
+    const failGuide = '이 사이트(예: 네이버)는 자동 불러오기를 차단할 수 있어요. 상단 📌 북마클릿 버튼을 쓰거나 직접 입력하세요.';
     const proxies = [
       u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
@@ -435,7 +592,7 @@
     list.sort((a,b)=>{
       switch(sort){
         case 'oldest': return a.id-b.id;
-        case 'priority': return (a.priority||3)-(b.priority||3) || b.id-a.id;
+        case 'priority': return normalizePriority(b.priority)-normalizePriority(a.priority) || b.id-a.id;
         case 'price_high': return (Number(b.price)||0)-(Number(a.price)||0);
         case 'price_low': return (Number(a.price)||0)-(Number(b.price)||0);
         case 'name': return (a.name||'').localeCompare(b.name||'');
@@ -443,14 +600,15 @@
       }
     });
     if(list.length===0){
-      grid.innerHTML = `<div class="empty">${currentTab==='wish'?'표시할 항목이 없어요. 위에서 추가해보세요!':'아직 구매한 물건이 없어요.'}</div>`;
+      grid.innerHTML = `<div class="empty">${currentTab==='wish'?'표시할 항목이 없어요. 오른쪽 위 ＋ 추가하기로 담아보세요!':'아직 구매한 물건이 없어요.'}</div>`;
       return;
     }
     grid.innerHTML = list.map(it=>{
       const thumb = it.img
         ? `<img class="thumb" src="${esc(it.img)}" onerror="this.outerHTML='<div class=&quot;thumb&quot;>이미지 없음</div>'">`
         : `<div class="thumb">이미지 없음</div>`;
-      const flag = (it.priority && it.priority!==3 && currentTab==='wish') ? `<div class="pri-flag">${PRI[it.priority]}</div>` : '';
+      const pri = normalizePriority(it.priority);
+      const flag = (pri>0 && currentTab==='wish') ? `<div class="pri-flag">${'🔥'.repeat(pri)}</div>` : '';
       const price = it.price ? `<div class="price">${fmt(it.price)}</div>` : '';
       const tags = (it.tags&&it.tags.length) ? `<div class="tags">${it.tags.map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div>` : '';
       const linkLine = it.link ? `<a class="card-link" href="${esc(it.link)}" target="_blank">🔗 링크 열기</a>` : '';
@@ -461,8 +619,8 @@
         extra = memo + d;
         actions = `<div class="btns">
             <button style="background:var(--chip);color:var(--text)" onclick="editItem(${it.id})">✏️ 수정</button>
-            <button style="background:var(--accent-2);color:#fff" onclick="markBought(${it.id})">🛒 구매함</button>
-            <button style="background:var(--danger);color:#fff" onclick="delItem(${it.id})">🗑️</button>
+            <button style="background:var(--accent-2);color:#fff" onclick="markBought(${it.id})">🛒 구매</button>
+            <button style="background:var(--danger);color:#fff" onclick="delItem(${it.id})">🗑️ 삭제</button>
           </div>`;
       } else {
         const ratingLine = it.rating ? `<div class="stars">${stars(it.rating)}</div>` : '';
@@ -470,9 +628,9 @@
         const d = it.boughtDate ? `<div class="dates">🛍️ 구매: ${it.boughtDate}</div>` : '';
         extra = ratingLine + review + d;
         actions = `<div class="btns">
-            <button style="background:var(--chip);color:var(--text)" onclick="editReview(${it.id})">✏️ 후기</button>
+            <button style="background:var(--chip);color:var(--text)" onclick="editReview(${it.id})">⭐ 후기</button>
             <button style="background:var(--chip);color:var(--text)" onclick="moveBack(${it.id})">↩️ 되돌리기</button>
-            <button style="background:var(--danger);color:#fff" onclick="delItem(${it.id})">🗑️</button>
+            <button style="background:var(--danger);color:#fff" onclick="delItem(${it.id})">🗑️ 삭제</button>
           </div>`;
       }
       return `<div class="card">${flag}${thumb}<div class="card-body">
@@ -483,10 +641,19 @@
   }
 
   updateThemeBtn();
+  migratePriorityIfNeeded();
   updateBookmarkletCode();
   handleBookmarkletParams();
   refreshTagFilter();
+  renderPriorityPicker();
+  renderReviewStars();
   render();
+  document.addEventListener('keydown', (e)=>{
+    if(e.key !== 'Escape') return;
+    closeItemModal();
+    closeBookmarkletModal();
+    closeReviewModal();
+  });
 </script>
 </body>
 </html>
