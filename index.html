@@ -227,31 +227,40 @@
     return { name: foundName, image: foundImage };
   }
   function getMetaContent(doc, key){
-    const safe = (window.CSS && CSS.escape) ? CSS.escape(key) : key.replace(/"/g, '\\"');
-    const el = doc.querySelector(`meta[property="${safe}"], meta[name="${safe}"]`);
-    return el ? (el.getAttribute('content') || '').trim() : '';
+    const target = (key || '').toLowerCase();
+    const metas = doc.querySelectorAll('meta[property], meta[name]');
+    for(const meta of metas){
+      const cur = (meta.getAttribute('property') || meta.getAttribute('name') || '').trim().toLowerCase();
+      if(cur === target) return (meta.getAttribute('content') || '').trim();
+    }
+    return '';
   }
   function bookmarkletSource(baseUrl){
-    return `javascript:(function(){var base=${JSON.stringify(baseUrl)};var q=function(s){var e=document.querySelector(s);return e?e.getAttribute('content')||'':'';};var name=q('meta[property="og:title"]')||q('meta[name="og:title"]')||document.title||'';var img=q('meta[property="og:image"]')||q('meta[name="og:image"]')||q('meta[property="twitter:image"]')||q('meta[name="twitter:image"]')||'';if(!img){var arr=Array.prototype.slice.call(document.images||[]).filter(function(i){return i&&i.src&&i.naturalWidth>=200&&i.naturalHeight>=200;}).sort(function(a,b){return b.naturalWidth*b.naturalHeight-a.naturalWidth*a.naturalHeight;});if(arr[0]) img=arr[0].src;}var target=base+'?add=1&name='+encodeURIComponent(name)+'&img='+encodeURIComponent(img)+'&link='+encodeURIComponent(location.href);window.open(target,'_blank');})();`;
+    return `javascript:(function(){var base=${JSON.stringify(baseUrl)};var q=function(s){var e=document.querySelector(s);return e?e.getAttribute('content')||'':'';};var decode=function(t){var a=document.createElement('textarea');a.innerHTML=t||'';return a.value||'';};var rawName=q('meta[property="og:title"]')||q('meta[name="og:title"]')||document.title||'';var name=decode(rawName);var img=q('meta[property="og:image"]')||q('meta[name="og:image"]')||q('meta[property="twitter:image"]')||q('meta[name="twitter:image"]')||'';if(!img){var arr=Array.prototype.slice.call(document.images||[]).filter(function(i){return i&&i.src&&i.naturalWidth>=200&&i.naturalHeight>=200;}).sort(function(a,b){return b.naturalWidth*b.naturalHeight-a.naturalWidth*a.naturalHeight;});if(arr[0]) img=arr[0].src;}var target=base+'?add=1&name='+encodeURIComponent(name)+'&img='+encodeURIComponent(img)+'&link='+encodeURIComponent(location.href);window.open(target,'_blank');})();`;
   }
   function updateBookmarkletCode(){
     const box = document.getElementById('bookmarkletCode');
     box.value = bookmarkletSource(location.origin + location.pathname);
   }
+  function fallbackCopyBookmarklet(box){
+    box.focus();
+    box.select();
+    document.execCommand('copy');
+    alert('북마클릿 코드를 복사했어요.');
+  }
   function copyBookmarklet(){
     const box = document.getElementById('bookmarkletCode');
     box.select();
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(box.value).then(()=>alert('북마클릿 코드를 복사했어요.')).catch(()=>document.execCommand('copy'));
+      navigator.clipboard.writeText(box.value).then(()=>alert('북마클릿 코드를 복사했어요.')).catch(()=>fallbackCopyBookmarklet(box));
       return;
     }
-    document.execCommand('copy');
-    alert('북마클릿 코드를 복사했어요.');
+    fallbackCopyBookmarklet(box);
   }
   function handleBookmarkletParams(){
     const params = new URLSearchParams(location.search);
     if(params.get('add') !== '1') return;
-    const name = decodeHtmlEntities(params.get('name') || '');
+    const name = params.get('name') || '';
     const img = params.get('img') || '';
     const link = params.get('link') || '';
     if(name || link || img){
@@ -259,7 +268,7 @@
       save();
       alert('북마클릿으로 상품을 추가했어요.');
     }
-    history.replaceState({}, document.title, location.pathname + location.hash);
+    history.replaceState(null, document.title, location.pathname + location.hash);
   }
 
   function switchTab(tab){
