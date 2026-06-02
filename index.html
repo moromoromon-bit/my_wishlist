@@ -40,6 +40,10 @@
   button.ghost{background:var(--chip); color:var(--text);}
   .hint{font-size:12px; color:var(--sub);}
   .label{font-size:12px; font-weight:700; color:var(--sub); margin-top:4px;}
+  .helper-box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:-6px 0 16px;}
+  .helper-box summary{cursor:pointer; font-weight:700; color:var(--text);}
+  .helper-body{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
+  .helper-body textarea{min-height:72px; font-size:12px;}
   .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
   .toolbar input, .toolbar select{padding:9px 12px; border:1px solid var(--line); border-radius:9px; font-size:13px; background:var(--card); color:var(--text);}
   .toolbar input{flex:1; min-width:160px;}
@@ -89,7 +93,7 @@
       <input id="inLink" placeholder="링크 붙여넣기 (예: https://...)">
       <button class="act ghost" onclick="autoFetch()" id="fetchBtn" style="flex:0 0 auto">🔍 자동 불러오기</button>
     </div>
-    <div class="hint">자동이 안 되면 아래 항목을 직접 입력하세요. (이미지 우클릭 → \"이미지 주소 복사\")</div>
+    <div class="hint">자동이 안 되면 아래 북마클릿을 쓰거나 직접 입력하세요. (이미지 우클릭 → "이미지 주소 복사")</div>
     <div class="row">
       <input id="inName" placeholder="상품 이름">
       <input id="inImg" placeholder="이미지 주소 (선택)">
@@ -111,6 +115,18 @@
       <button class="act ghost" onclick="clearForm()" style="flex:0 0 auto">입력 초기화</button>
     </div>
   </div>
+
+  <details class="helper-box">
+    <summary>📌 북마클릿 설치/사용법</summary>
+    <div class="helper-body">
+      <div class="hint">아래 코드를 복사해 브라우저 즐겨찾기에 URL로 저장한 뒤, 상품 페이지에서 클릭하면 바로 위시리스트에 담깁니다.</div>
+      <textarea id="bookmarkletCode" readonly></textarea>
+      <div class="row">
+        <button class="act ghost" onclick="copyBookmarklet()" style="flex:0 0 auto">📋 북마클릿 코드 복사</button>
+      </div>
+      <div class="hint">네이버/쿠팡처럼 자동 불러오기가 막히는 사이트에서 특히 유용합니다.</div>
+    </div>
+  </details>
 
   <div class="toolbar">
     <input id="searchBox" placeholder="🔍 이름·메모·태그 검색" oninput="render()">
@@ -150,6 +166,110 @@
   function fmt(n){ return n ? Number(n).toLocaleString('ko-KR')+'원' : ''; }
   function today(){ return new Date().toISOString().slice(0,10); }
   function esc(s){ return (s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
+  function decodeHtmlEntities(s){
+    if(!s) return '';
+    const t = document.createElement('textarea');
+    t.innerHTML = s;
+    return t.value.trim();
+  }
+  function makeItem(data){
+    return {
+      id: data.id || Date.now(),
+      name: data.name || '',
+      link: data.link || '',
+      img: data.img || '',
+      memo: data.memo || '',
+      price: data.price || '',
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      priority: Number(data.priority) || 3,
+      bought: !!data.bought,
+      review: data.review || '',
+      rating: Number(data.rating) || 0,
+      addedDate: data.addedDate || today(),
+      boughtDate: data.boughtDate || ''
+    };
+  }
+  function pickJsonLdImage(v){
+    if(!v) return '';
+    if(typeof v === 'string') return v;
+    if(Array.isArray(v)){
+      for(const each of v){
+        const found = pickJsonLdImage(each);
+        if(found) return found;
+      }
+      return '';
+    }
+    if(typeof v === 'object') return pickJsonLdImage(v.url || v.contentUrl || v['@id']);
+    return '';
+  }
+  function extractJsonLdFallback(doc){
+    const scripts = Array.from(doc.querySelectorAll('script[type="application/ld+json"]'));
+    let foundName = '';
+    let foundImage = '';
+    for(const script of scripts){
+      const text = (script.textContent || '').trim();
+      if(!text) continue;
+      try{
+        const parsed = JSON.parse(text);
+        const queue = Array.isArray(parsed) ? [...parsed] : [parsed];
+        while(queue.length){
+          const node = queue.shift();
+          if(!node || typeof node !== 'object') continue;
+          if(Array.isArray(node)){ queue.push(...node); continue; }
+          if(!foundName && typeof node.name === 'string') foundName = node.name;
+          if(!foundImage) foundImage = pickJsonLdImage(node.image);
+          if(node['@graph']) queue.push(node['@graph']);
+          if(node.mainEntity) queue.push(node.mainEntity);
+          if(foundName && foundImage) return { name: foundName, image: foundImage };
+        }
+      }catch(e){}
+    }
+    return { name: foundName, image: foundImage };
+  }
+  function getMetaContent(doc, key){
+    const target = (key || '').toLowerCase();
+    const metas = doc.querySelectorAll('meta[property], meta[name]');
+    for(const meta of metas){
+      const cur = (meta.getAttribute('property') || meta.getAttribute('name') || '').trim().toLowerCase();
+      if(cur === target) return (meta.getAttribute('content') || '').trim();
+    }
+    return '';
+  }
+  function bookmarkletSource(baseUrl){
+    return `javascript:(function(){var base=${JSON.stringify(baseUrl)};var q=function(s){var e=document.querySelector(s);return e?e.getAttribute('content')||'':'';};var decode=function(t){var a=document.createElement('textarea');a.innerHTML=t||'';return a.value||'';};var rawName=q('meta[property="og:title"]')||q('meta[name="og:title"]')||document.title||'';var name=decode(rawName);var img=q('meta[property="og:image"]')||q('meta[name="og:image"]')||q('meta[property="twitter:image"]')||q('meta[name="twitter:image"]')||'';if(!img){var arr=Array.prototype.slice.call(document.images||[]).filter(function(i){return i&&i.src&&i.naturalWidth>=200&&i.naturalHeight>=200;}).sort(function(a,b){return b.naturalWidth*b.naturalHeight-a.naturalWidth*a.naturalHeight;});if(arr[0]) img=arr[0].src;}var target=base+'?add=1&name='+encodeURIComponent(name)+'&img='+encodeURIComponent(img)+'&link='+encodeURIComponent(location.href);window.open(target,'_blank');})();`;
+  }
+  function updateBookmarkletCode(){
+    const box = document.getElementById('bookmarkletCode');
+    box.value = bookmarkletSource(location.origin + location.pathname);
+  }
+  function fallbackCopyBookmarklet(box){
+    box.focus();
+    box.select();
+    document.execCommand('copy');
+    alert('북마클릿 코드를 복사했어요.');
+  }
+  function copyBookmarklet(){
+    const box = document.getElementById('bookmarkletCode');
+    box.select();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(box.value).then(()=>alert('북마클릿 코드를 복사했어요.')).catch(()=>fallbackCopyBookmarklet(box));
+      return;
+    }
+    fallbackCopyBookmarklet(box);
+  }
+  function handleBookmarkletParams(){
+    const params = new URLSearchParams(location.search);
+    if(params.get('add') !== '1') return;
+    const name = params.get('name') || '';
+    const img = params.get('img') || '';
+    const link = params.get('link') || '';
+    if(name || link || img){
+      items.unshift(makeItem({ name, img, link }));
+      save();
+      alert('북마클릿으로 상품을 추가했어요.');
+    }
+    history.replaceState(null, document.title, location.pathname + location.hash);
+  }
 
   function switchTab(tab){
     currentTab = tab;
@@ -178,11 +298,10 @@
       it.price=inPrice.value; it.tags=parseTags(inTags.value); it.priority=Number(inPriority.value);
       editingId=null;
     } else {
-      items.unshift({
-        id: Date.now(), name, link, img: inImg.value.trim(), memo: inMemo.value.trim(),
-        price: inPrice.value, tags: parseTags(inTags.value), priority: Number(inPriority.value),
-        bought:false, review:'', rating:0, addedDate: today(), boughtDate:''
-      });
+      items.unshift(makeItem({
+        name, link, img: inImg.value.trim(), memo: inMemo.value.trim(),
+        price: inPrice.value, tags: parseTags(inTags.value), priority: Number(inPriority.value)
+      }));
     }
     save(); clearForm(); refreshTagFilter(); render();
   }
@@ -251,27 +370,37 @@
     if(!url){ alert('먼저 링크를 붙여넣어 주세요.'); return; }
     const btn = document.getElementById('fetchBtn');
     btn.textContent='불러오는 중...'; btn.disabled=true;
+    const failGuide = '이 사이트(예: 네이버)는 자동 불러오기를 차단할 수 있어요. 아래 북마클릿을 쓰거나 직접 입력하세요.';
     const proxies = [
       u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`
+      u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+      u=>`https://thingproxy.freeboard.io/fetch/${u}`
     ];
     let html=null;
     for(const p of proxies){
       try{ const res=await fetch(p(url)); if(res.ok){ html=await res.text(); if(html) break; } }catch(e){}
     }
     btn.textContent='🔍 자동 불러오기'; btn.disabled=false;
-    if(!html){ alert('자동 불러오기에 실패했어요. 직접 입력해주세요.'); return; }
-    const get = (prop)=>{
-      const m = html.match(new RegExp('<meta[^>]+(?:property|name)=[\"\']'+prop+'[\"\'][^>]+content=[\"\']([^\"\']+)[\"\']','i'))
-             || html.match(new RegExp('<meta[^>]+content=[\"\']([^\"\']+)[\"\'][^>]+(?:property|name)=[\"\']'+prop+'[\"\']','i'));
-      return m ? m[1] : '';
-    };
-    const ogImg = get('og:image');
-    let title = get('og:title');
-    if(!title){ const t=html.match(/<title[^>]*>([^<]+)<\/title>/i); title=t?t[1].trim():''; }
+    if(!html){ alert(failGuide); return; }
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const ld = extractJsonLdFallback(doc);
+    const titleTag = doc.querySelector('title');
+    const title = decodeHtmlEntities(
+      getMetaContent(doc, 'og:title') ||
+      getMetaContent(doc, 'twitter:title') ||
+      (titleTag ? titleTag.textContent : '') ||
+      ld.name ||
+      ''
+    );
+    const image = getMetaContent(doc, 'og:image') ||
+      getMetaContent(doc, 'twitter:image') ||
+      getMetaContent(doc, 'og:image:url') ||
+      ld.image ||
+      '';
     if(title && !inName.value) inName.value = title;
-    if(ogImg && !inImg.value) inImg.value = ogImg;
-    if(!ogImg && !title) alert('정보를 찾지 못했어요. 직접 입력해주세요.');
+    if(image && !inImg.value) inImg.value = image;
+    if(!title && !image) alert(failGuide);
   }
 
   function refreshTagFilter(){
@@ -354,6 +483,8 @@
   }
 
   updateThemeBtn();
+  updateBookmarkletCode();
+  handleBookmarkletParams();
   refreshTagFilter();
   render();
 </script>
