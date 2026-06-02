@@ -324,7 +324,7 @@
           }
           if(node['@graph']) queue.push(node['@graph']);
           if(node.mainEntity) queue.push(node.mainEntity);
-          if(foundName && foundImage && foundBrand) return { name: foundName, image: foundImage, brand: foundBrand };
+          if(foundName && foundImage) return { name: foundName, image: foundImage, brand: foundBrand };
         }
       }catch(e){}
     }
@@ -347,7 +347,7 @@
       if(parts.length === 2){
         const left = parts[0].trim();
         const right = parts[1].trim();
-        if(left.length >= 2 && right.length >= 1) return { name: left, brand: right };
+        if(left.length >= 2 && right.length >= 1) return { name: left, brand: right }; // ignore empty/too-short fragments
       }
     }
     return { name: title, brand: '' };
